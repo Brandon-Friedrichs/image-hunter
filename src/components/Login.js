@@ -21,6 +21,7 @@ export default function Login() {
       history.push('/');
     } catch {
       setError('Failed to login to account');
+      setLoading(false);
     }
   }
 

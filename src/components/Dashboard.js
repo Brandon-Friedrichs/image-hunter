@@ -33,6 +33,9 @@ export default function Dashboard() {
       <div className='w-100 text-center mt-2'>
         <Button variant='link' onClick={handleLogout}>Log Out</Button>
       </div>
+      <div className='w-100 text-center mt-2'>
+        <Link to='/game' className='btn btn-primary w-100 mt-3'>Play Game</Link>
+      </div>
     </>
   )
 }
