@@ -5,7 +5,8 @@ export default function Notification({ text, bgc }) {
     <div 
       style={{
         position: 'fixed',
-        top: '2rem',
+        zIndex: '1',
+        top: '4rem',
         left: '50%',
         transform: 'translateX(-50%)',
         padding: '0.5rem 1rem',

@@ -1,18 +1,35 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { ListGroup, Button, Alert } from 'react-bootstrap';
 import { firestore } from '../firebase';
+import Navbar from './Navbar';
+import useTimer from '../hooks/useTimer';
 import useNotification from '../hooks/useNotification';
 import Notification from './Notification';
+import StartMenu from './StartMenu';
+import GameOverMenu from './GameOverMenu';
+import CharacterMenu from './CharacterMenu';
 
 export default function Game() {
   const [menu, setMenu] = useState('hidden');
+  const [openGameOverMenu, setOpenGameOverMenu] = useState(false);
+  const [charTracker, setCharTracker] = useState([]);
   const [pageX, setPageX] = useState(0);
   const [pageY, setPageY] = useState(0);
+  const [openStartMenu, setOpenStartMenu] = useState(true);
   const imgRef = useRef();
+  const [timer, startTimer, stopTimer, resetTimer] = useTimer();
   const [notification, setNotification, openNotification, toggleNotification] = useNotification(
     { text: '', bgc: 'red' },
     3000
   );
+
+  async function startGame() {
+    console.log('starting game')
+    setOpenStartMenu(false);
+    startTimer();
+    const charTrackerData =  await getCharsFromDb();
+    setCharTracker(charTrackerData);
+  }
 
   function toggleMenu() {
     if (menu === 'hidden') setMenu('visible');
@@ -28,7 +45,31 @@ export default function Game() {
     }
   }
 
+  function characterFound(charFound) {
+    const updatedCharTracker = charTracker.map((character) => {
+      if (character.id === charFound) {
+        return { ...character, found: true };
+      } else {
+        return character;
+      }
+    })
+    setCharTracker(updatedCharTracker);
+    console.log(charTracker) 
+  }
+  
+  useEffect(() => {
+    if (charTracker.length && charTracker.every((character) => character.found === true)) handleWin();
+  }, [charTracker])
+  
+  function handleWin() {
+    console.log('YOU WIN!');
+    stopTimer();
+    setOpenGameOverMenu(true);
+  }
+
   async function checkForCharacter(e) {
+    console.log(charTracker)
+
     const char = e.target.textContent;
     const dbCoords = await getCoordsFromDb(char, pageX, pageY);
     console.log(dbCoords)
@@ -50,6 +91,7 @@ export default function Game() {
     if (testX && testY) {
       setNotification({ text: ` You found ${char}!`, bgc: 'green' });
       toggleNotification();
+      characterFound(char);
     } else if (!testX || !testY) {
       setNotification({ text: `That's not ${char}, keep looking!`, bgc: 'red'});
       toggleNotification();
@@ -69,9 +111,28 @@ export default function Game() {
     return coords;
   }
 
+  async function getCharsFromDb() {
+    const charsRef = firestore.collection('charTracker')
+    const chars = await charsRef.get().then((querySnapshot) => {
+      let charsData = [];
+      querySnapshot.forEach((doc) => {
+        charsData.push(doc.data())
+      })
+      const loadedCharacters = charsData.map((character) => {
+        const obj = { id: character.name, found: false};
+        return obj
+      })
+      return loadedCharacters;
+    })
+    return chars;
+  }
+
   return (
-    <div onClick={handleClick} ref={imgRef} >
+    <div>
+      <Navbar timer={timer}></Navbar>
+      {openStartMenu && <StartMenu startGame={startGame} ></StartMenu>}
       {openNotification && <Notification text={notification.text} bgc={notification.bgc} ></Notification>}
+      {openGameOverMenu && <GameOverMenu></GameOverMenu>}
       <div
         style={{
           display: 'flex',
@@ -87,23 +148,20 @@ export default function Game() {
           top: pageY - 40,
           left: pageX- 40
         }}
+        onClick={toggleMenu}
       >
-        <ListGroup onClick={checkForCharacter}
-          style={{
-            display: 'flex',
-            width: '8rem',
-            textAlign: 'center',
-            left: '100',
-            cursor: 'pointer',
-            transform: 'translate(70%,70%)'
-          }}
-        >
-          <ListGroup.Item className='btn-light' >Venusaur</ListGroup.Item>
-          <ListGroup.Item className='btn-light' >Sonic</ListGroup.Item>
-          <ListGroup.Item className='btn-light' >Alien</ListGroup.Item>
-        </ListGroup>
+        <CharacterMenu checkForCharacter={checkForCharacter} charTracker={charTracker} ></CharacterMenu>
       </div>
-      <img className='mw-100' src='./pixellandscape.png' alt='' />
+      <img 
+        style={{
+          maxWidth: '100vw',
+          marginTop: '3rem'
+        }}
+        onClick={handleClick}
+        ref={imgRef}
+        src='./pixellandscape.png' 
+        alt='' 
+      />
     </div>
   )
 }
