@@ -1,5 +1,8 @@
-# Getting Started with Create React App
+# Image-Hunter Game
 
+## Overview
+
+An Image-Hunter game app where the player must find and select the designated characters.
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
