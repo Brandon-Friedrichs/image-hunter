@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { ListGroup, Button, Alert } from 'react-bootstrap';
 import { firestore } from '../firebase';
 import Navbar from './Navbar';
 import useTimer from '../hooks/useTimer';
@@ -17,17 +16,26 @@ export default function Game() {
   const [pageY, setPageY] = useState(0);
   const [openStartMenu, setOpenStartMenu] = useState(true);
   const imgRef = useRef();
-  const [timer, startTimer, stopTimer, resetTimer] = useTimer();
+  const [timer, formatTime, startTimer, stopTimer, resetTimer] = useTimer();
   const [notification, setNotification, openNotification, toggleNotification] = useNotification(
     { text: '', bgc: 'red' },
     3000
   );
 
   async function startGame() {
-    console.log('starting game')
+    console.log('Starting game')
     setOpenStartMenu(false);
     startTimer();
     const charTrackerData =  await getCharsFromDb();
+    setCharTracker(charTrackerData);
+  }
+
+  async function restartGame() {
+    console.log('Restarting game')
+    setOpenGameOverMenu(false);
+    resetTimer();
+    startTimer();
+    const charTrackerData = await getCharsFromDb();
     setCharTracker(charTrackerData);
   }
 
@@ -39,7 +47,6 @@ export default function Game() {
   function handleClick(e) {
     toggleMenu();
     if (menu === 'hidden') {
-      console.log(e.pageX, e.pageY);
       setPageX(e.pageX);
       setPageY(e.pageY);
     }
@@ -54,7 +61,6 @@ export default function Game() {
       }
     })
     setCharTracker(updatedCharTracker);
-    console.log(charTracker) 
   }
   
   useEffect(() => {
@@ -62,31 +68,24 @@ export default function Game() {
   }, [charTracker])
   
   function handleWin() {
-    console.log('YOU WIN!');
     stopTimer();
     setOpenGameOverMenu(true);
   }
 
   async function checkForCharacter(e) {
-    console.log(charTracker)
-
     const char = e.target.textContent;
     const dbCoords = await getCoordsFromDb(char, pageX, pageY);
-    console.log(dbCoords)
 
     const width = imgRef.current.offsetWidth;
     const height = imgRef.current.offsetHeight;
 
     // Convert to relative form based on screen size.
-    // Needs to be fixed.
     const relX = pageX / width;
-    const relY = pageY / height;
-    // console.log(relX, relY)
+    const relY = (pageY - 50) / height;
 
     // Testing the max relative distance from origin (deltaX = 0.042, deltaY = 0.01).
-    const testX = Math.abs(relX - dbCoords.x / width) < 0.042;
-    const testY = Math.abs(relY - dbCoords.y / height) < 0.042;
-    console.log(testX, testY);
+    const testX = Math.abs(relX - dbCoords.x) < 0.042;
+    const testY = Math.abs(relY - dbCoords.y) < 0.03;
 
     if (testX && testY) {
       setNotification({ text: ` You found ${char}!`, bgc: 'green' });
@@ -112,7 +111,7 @@ export default function Game() {
   }
 
   async function getCharsFromDb() {
-    const charsRef = firestore.collection('charTracker')
+    const charsRef = firestore.collection('charTracker');
     const chars = await charsRef.get().then((querySnapshot) => {
       let charsData = [];
       querySnapshot.forEach((doc) => {
@@ -128,11 +127,11 @@ export default function Game() {
   }
 
   return (
-    <div>
-      <Navbar timer={timer}></Navbar>
+    <div ref={imgRef} >
+      <Navbar timer={formatTime(timer)}></Navbar>
       {openStartMenu && <StartMenu startGame={startGame} ></StartMenu>}
       {openNotification && <Notification text={notification.text} bgc={notification.bgc} ></Notification>}
-      {openGameOverMenu && <GameOverMenu></GameOverMenu>}
+      {openGameOverMenu && <GameOverMenu timer={timer} formatTime={formatTime} restartGame={restartGame} openGameOverMenu={openGameOverMenu} ></GameOverMenu>}
       <div
         style={{
           display: 'flex',
@@ -158,7 +157,6 @@ export default function Game() {
           marginTop: '3rem'
         }}
         onClick={handleClick}
-        ref={imgRef}
         src='./pixellandscape.png' 
         alt='' 
       />

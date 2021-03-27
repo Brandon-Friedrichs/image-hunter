@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { ListGroup, ListGroupItem } from 'react-bootstrap';
+import React from 'react';
+import { ListGroup } from 'react-bootstrap';
 
 
 export default function CharacterMenu({ checkForCharacter, charTracker }) {

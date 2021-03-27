@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import useTimedToggle from './useTimedToggle';
 
 export default function useNotification(initialContent, interval) {
